@@ -8,6 +8,13 @@ unsaved_objects = []
 
 def main():
 
+    with open("database.csv","r") as file:
+        reader = csv.DictReader(file)
+        for stuff in reader:
+            print("Name: " + stuff["name"],"Age: " + stuff["age"])
+        
+    time.sleep(2)
+
     while True:
         print("===== DATABASE =====")
         print("1. Add Object")
