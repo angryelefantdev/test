@@ -1,7 +1,10 @@
 import time
 import sys
+import csv
+
 
 objects = []
+unsaved_objects = []
 
 def main():
 
@@ -41,9 +44,11 @@ def add_object():
     name = input("Name: ")
     age = input("Age: ")
 
-    objects.append({"name": name,"age": age})
+    new_entry = {"name": name, "age": age}
+    objects.append(new_entry)
+    unsaved_objects.append(new_entry)
 
-    
+    print(f"Added {name}.")
     time.sleep(0.5)
     
 
@@ -65,9 +70,11 @@ def remove_object():
 
     remover = input("Who do you want to remove? CASE SENSITIVE ")
     found = False
-    for removed in objects:
-        if removed["name"] == remover:
-            objects.remove(removed)
+    for obj in list(objects):
+        if obj["name"] == remover:
+            objects.remove(obj)
+            if obj in unsaved_objects:
+                unsaved_objects.remove(obj)
             found = True
 
     if not found:
@@ -84,7 +91,30 @@ def search_objects():
     
 
 def save_object():
-    print("saved objects")
+
+    if not objects:
+        print("no objects")
+        return
+
+    writing_objects = objects
+
+    with open("database.csv", "a", newline="") as file:
+        fieldnames = ["name", "age"]
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+      
+        writer.writerows(unsaved_objects)
+
+    print(f"Successfully saved {len(unsaved_objects)} object(s) to CSV.")
+
+   
+    unsaved_objects.clear()
+
+       
+
+
+        
+    
     time.sleep(0.5)
     
 
