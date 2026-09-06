@@ -77,7 +77,9 @@ def remove_object():
     
 
 def search_objects():
-    print("searched for objects")
+    for objecter in objects:
+        print("name: " + objecter["name"], "age: " + objecter["age"])
+        
     time.sleep(0.5)
     
 
