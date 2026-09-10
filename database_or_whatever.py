@@ -1,19 +1,28 @@
-import csv
 import sys
 import time
+import sqlite3
 
-objects = []
-
+connection = sqlite3.connect("thedatabase.db")
+cursor = connection.cursor()
 
 def main():
-    try:
-        with open("database.csv", "r") as file:
-            reader = csv.DictReader(file)
-            for stuff in reader:
-                print("Name: " + stuff["name"], "Age: " + stuff["age"])
-                objects.append({"name": stuff["name"], "age": stuff["age"]})
-    except FileNotFoundError:
-        print("No existing database file found. A new one will be created on save.")
+    command_create = """
+    CREATE TABLE IF NOT EXISTS the_data(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        age INTEGER
+    )"""
+    cursor.execute(command_create)
+    connection.commit()
+
+    cursor.execute("SELECT * FROM the_data")
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Nothing in the database yet.")
+    else:
+        for row in rows:
+            print(row)
 
     time.sleep(1)
 
@@ -23,7 +32,7 @@ def main():
         print("2. Search Object")
         print("3. Remove Object")
         print("4. Search Objects")
-        print("5. Save Changes")
+        print("5. Save Object")
         print("6. Exit")
 
         choice = input("Choice: ").lower().strip()
@@ -37,86 +46,76 @@ def main():
                 remove_object()
             elif choice in ("4", "search objects"):
                 search_objects()
-            elif choice in ("5", "save object", "save changes"):
+            elif choice in ("5", "save object"):
                 save_object()
             elif choice in ("6", "exit"):
                 exit_app()
             else:
                 print("Wrong input. Expecting number or name in the list.")
-
         except ValueError:
             print("Invalid input.")
 
 
 def add_object():
     name = input("Name: ")
-    age = int(input("Age: "))
-    
-
-
-    new_entry = {"name": name, "age": age}
-    objects.append(new_entry)
-
-    print(f"Added {name}.")
+    try:
+        age = int(input("Age: "))
+        cursor.execute("INSERT INTO the_data (name, age) VALUES (?, ?)", (name, age))
+        connection.commit() 
+        print(f"Added {name}.")
+    except ValueError:
+        print("Age must be a valid number.")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
     time.sleep(0.5)
 
 
 def search_object():
-    found = False
-    object_search = input("CASE SENSITIVE! ")
-    for obj in objects:
-        if obj["name"] == object_search:
-            print("name: " + obj["name"], "age: " + obj["age"])
-            found = True
+    find_object = input("Who do you wish to find? ")
+    try:
+        cursor.execute("SELECT name, age FROM the_data WHERE name = ?", (find_object,))
+        results = cursor.fetchall()
 
-    if not found:
-        print("No such thing as " + object_search)
+        if not results:
+            print(f"Couldn't find '{find_object}'.")
+        else:
+            for row in results:
+                print(f"Name: {row[0]}, Age: {row[1]}")
 
+    except sqlite3.Error as error:
+        print(f"Error: {error}")
     time.sleep(0.5)
 
 
 def remove_object():
-    remover = input("Who do you want to remove? CASE SENSITIVE ")
-    found = False
-
-    for obj in list(objects):
-        if obj["name"] == remover:
-            objects.remove(obj)
-            found = True
-
-    if found:
-        print(f"Removed {remover} from memory. Remember to select 'Save' to update database.csv!")
-    else:
-        print("Such user does not exist.")
-
+    object_remover = input("Who do you wish to remove? ")
+    cursor.execute("DELETE FROM the_data WHERE name = ?", (object_remover,))
+    connection.commit()  # Save deletion
+    print(f"Removed '{object_remover}'")
     time.sleep(0.5)
 
 
 def search_objects():
-    if not objects:
-        print("Database is empty.")
-        return
-
-    for objecter in objects:
-        print("name: " + objecter["name"], "age: " + objecter["age"])
+    cursor.execute("SELECT * FROM the_data")
+    rows = cursor.fetchall()
+    
+    if not rows:
+        print("Database is currently empty.")
+    else:
+        for row in rows:
+            print(f"ID: {row[0]} | Name: {row[1]} | Age: {row[2]}")
 
     time.sleep(0.5)
 
 
 def save_object():
-    # Write mode ("w") overwrites the file with the updated 'objects' list
-    with open("database.csv", "w", newline="") as file:
-        fieldnames = ["name", "age"]
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-        writer.writeheader()
-        writer.writerows(objects)
-
-    print(f"Successfully saved {len(objects)} object(s) to database.csv.")
+    connection.commit()
+    print("Database changes saved successfully!")
     time.sleep(0.5)
 
 
 def exit_app():
+    connection.close() 
     sys.exit("Exited")
 
 
